@@ -27,29 +27,49 @@ local function fetchPrograms(url)
     return programs
 end
 
--- Draw only the visible lines
+-- Draws UI
 local function drawMenu(programs, selected, startIdx, pageSize)
-    term.setCursorPos(1, 1)
     term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
     term.clear()
 
+    local width, height = term.getSize()
+
+    -- Draw title bar
+    term.setCursorPos(1, 1)
+    term.setBackgroundColor(colors.gray)
+    term.clearLine()
+    local title = " CC Package Manager "
+    term.setCursorPos(math.floor((width - #title) / 2), 1)
+    term.write(title)
+
+    term.setBackgroundColor(colors.black)
     local endIdx = math.min(startIdx + pageSize - 1, #programs)
+
     for i = startIdx, endIdx do
-        term.setCursorPos(1, i - startIdx + 1)
+        local y = (i - startIdx + 2) -- +2 because of title bar
+        term.setCursorPos(1, y)
+
         if i == selected then
-            term.setTextColor(colors.yellow)
-            term.write("> " .. programs[i].name)
+            term.setBackgroundColor(colors.yellow)
+            term.setTextColor(colors.black)
+            local line = " " .. programs[i].name .. " "
+            line = line .. string.rep(" ", math.max(0, width - #line))
+            term.write(line)
+            term.setBackgroundColor(colors.black)
             term.setTextColor(colors.white)
         else
-            term.write("  " .. programs[i].name)
+            local line = "  " .. programs[i].name
+            line = line .. string.rep(" ", math.max(0, width - #line))
+            term.write(line)
         end
     end
 end
 
--- Keyboard-only menu navigation
+-- Menu Nav
 local function menu(programs)
     local width, height = term.getSize()
-    local pageSize = height
+    local pageSize = height - 1  -- Leave room for title bar
     local selected = 1
     local startIdx = 1
 
@@ -84,6 +104,7 @@ local function downloadAndRun(program)
     local success, response = pcall(http.get, program.url)
     if not success or not response then
         print("Failed to download program")
+        sleep(2)
         return
     end
 
@@ -93,10 +114,14 @@ local function downloadAndRun(program)
     local func, err = load(code, program.name)
     if not func then
         print("Failed to load program: " .. err)
+        sleep(2)
         return
     end
 
     print("Running " .. program.name .. "...")
+    sleep(1)
+    term.clear()
+    term.setCursorPos(1, 1)
     func()
 end
 
