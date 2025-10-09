@@ -39,7 +39,7 @@ local function drawMenu(programs, selected, startIdx, pageSize)
     term.setCursorPos(1, 1)
     term.setBackgroundColor(colors.gray)
     term.clearLine()
-    local title = " CC Package Manager "
+    local title = " AV Package Manager "
     term.setCursorPos(math.floor((width - #title) / 2), 1)
     term.write(title)
 
@@ -51,15 +51,15 @@ local function drawMenu(programs, selected, startIdx, pageSize)
         term.setCursorPos(1, y)
 
         if i == selected then
-            term.setBackgroundColor(colors.yellow)
+            term.setBackgroundColor(colors.lightGray)
             term.setTextColor(colors.black)
-            local line = " " .. programs[i].name .. " "
+            local line = "  " .. programs[i].name .. " "
             line = line .. string.rep(" ", math.max(0, width - #line))
             term.write(line)
             term.setBackgroundColor(colors.black)
             term.setTextColor(colors.white)
         else
-            local line = "  " .. programs[i].name
+            local line = " " .. programs[i].name
             line = line .. string.rep(" ", math.max(0, width - #line))
             term.write(line)
         end
