@@ -4,7 +4,8 @@
 
 
 -- Config
-local DATA_URL = "http://example.com/programs.json"  -- Replace with your JSON link
+local DATA_URL = "https://raw.githubusercontent.com/AtlasV1224/CC-Tweaked/refs/heads/main/PackageManager/CCTweakedPrograms.json"
+
 
 -- Fetch program list from URL
 local function fetchPrograms(url)
@@ -26,57 +27,59 @@ local function fetchPrograms(url)
     return programs
 end
 
--- Draw menu with paging
-local function drawMenu(programs, selected)
+-- Draw only the visible lines
+local function drawMenu(programs, selected, startIdx, pageSize)
+    term.setCursorPos(1, 1)
+    term.setBackgroundColor(colors.black)
     term.clear()
-    local width, height = term.getSize()
-    local pageSize = height
-    local page = math.floor((selected-1)/pageSize)
-    local startIdx = page * pageSize + 1
-    local endIdx = math.min(startIdx + pageSize - 1, #programs)
 
+    local endIdx = math.min(startIdx + pageSize - 1, #programs)
     for i = startIdx, endIdx do
+        term.setCursorPos(1, i - startIdx + 1)
         if i == selected then
             term.setTextColor(colors.yellow)
-            print("> " .. programs[i].name)
+            term.write("> " .. programs[i].name)
             term.setTextColor(colors.white)
         else
-            print("  " .. programs[i].name)
+            term.write("  " .. programs[i].name)
         end
     end
 end
 
--- Handle menu input (keyboard + touchscreen)
+-- Keyboard-only menu navigation
 local function menu(programs)
+    local width, height = term.getSize()
+    local pageSize = height
     local selected = 1
+    local startIdx = 1
+
+    drawMenu(programs, selected, startIdx, pageSize)
+
     while true do
-        drawMenu(programs, selected)
-        local event, param1, param2, param3 = os.pullEvent()
-        
-        if event == "key" then
-            if param1 == keys.up and selected > 1 then
-                selected = selected - 1
-            elseif param1 == keys.down and selected < #programs then
-                selected = selected + 1
-            elseif param1 == keys.enter then
-                return programs[selected]
+        local event, key = os.pullEvent("key")
+
+        if key == keys.up and selected > 1 then
+            selected = selected - 1
+            if selected < startIdx then
+                startIdx = selected
             end
-        elseif event == "mouse_click" then
-            local x, y = param2, param3
-            local width, height = term.getSize()
-            local pageSize = height
-            local page = math.floor((selected-1)/pageSize)
-            local startIdx = page * pageSize + 1
-            local clickedIndex = startIdx + y - 1
-            if programs[clickedIndex] then
-                return programs[clickedIndex]
+            drawMenu(programs, selected, startIdx, pageSize)
+        elseif key == keys.down and selected < #programs then
+            selected = selected + 1
+            if selected > startIdx + pageSize - 1 then
+                startIdx = selected - pageSize + 1
             end
+            drawMenu(programs, selected, startIdx, pageSize)
+        elseif key == keys.enter then
+            return programs[selected]
         end
     end
 end
 
 -- Download and run program
 local function downloadAndRun(program)
+    term.clear()
+    term.setCursorPos(1, 1)
     print("Downloading " .. program.name .. "...")
     local success, response = pcall(http.get, program.url)
     if not success or not response then
@@ -97,7 +100,7 @@ local function downloadAndRun(program)
     func()
 end
 
--- Main loop
+-- Main
 local programs = fetchPrograms(DATA_URL)
 if #programs == 0 then
     print("No programs available")
