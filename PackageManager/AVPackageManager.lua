@@ -5,6 +5,7 @@
 
 -- Config
 local DATA_URL = "https://raw.githubusercontent.com/AtlasV1224/CC-Tweaked/refs/heads/main/PackageManager/CCTweakedPrograms.json"
+local PROGRAMS_DIR = "Programs"
 
 
 -- Fetch program list from URL
@@ -96,33 +97,118 @@ local function menu(programs)
     end
 end
 
--- Download and run program
-local function downloadAndRun(program)
+-- Download and program
+local function downloadProgram(program)
     term.clear()
     term.setCursorPos(1, 1)
     print("Downloading " .. program.name .. "...")
+
     local success, response = pcall(http.get, program.url)
     if not success or not response then
-        print("Failed to download program")
+        print("Failed to download program.")
         sleep(2)
-        return
+        return false
     end
 
     local code = response.readAll()
     response.close()
 
-    local func, err = load(code, program.name)
-    if not func then
-        print("Failed to load program: " .. err)
-        sleep(2)
-        return
+    -- Ensure Programs directory exists
+    if not fs.exists(PROGRAMS_DIR) then
+        fs.makeDir(PROGRAMS_DIR)
     end
 
-    print("Running " .. program.name .. "...")
+    -- Save file
+    local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
+    local file = fs.open(filePath, "w")
+    file.write(code)
+    file.close()
+
+    print("Saved to " .. filePath)
     sleep(1)
+
+    return filePath
+end
+
+-- Run Program
+local function runProgram(filePath)
     term.clear()
     term.setCursorPos(1, 1)
-    func()
+    print("Running program...")
+    sleep(1)
+    shell.run(filePath)
+end
+
+-- Reinstall, Deletes and installs anew
+local function reinstallProgram(program)
+    local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
+    if fs.exists(filePath) then
+        fs.delete(filePath)
+        print("Old version removed.")
+        sleep(0.5)
+    end
+    return downloadProgram(program)
+end
+
+-- App options Submenu
+local function programSubMenu(program)
+    local options = {"Download", "Run", "Reinstall"}
+    local selected = 1
+
+    while true do
+        term.clear()
+        term.setCursorPos(1, 1)
+        print("Program: " .. program.name)
+        print("----------------------")
+
+        for i, opt in ipairs(options) do
+            local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
+            local installed = fs.exists(filePath)
+
+            -- Disable Run/Reinstall if not installed
+            local disabled = (opt ~= "Download" and not installed)
+
+            if i == selected then
+                term.setBackgroundColor(colors.lightGray)
+                term.setTextColor(colors.black)
+            else
+                term.setBackgroundColor(colors.black)
+                term.setTextColor(colors.white)
+            end
+
+            if disabled then
+                term.setTextColor(colors.gray)
+            end
+
+            print("  " .. opt)
+            term.setBackgroundColor(colors.black)
+            term.setTextColor(colors.white)
+        end
+
+        local event, key = os.pullEvent("key")
+        if key == keys.up and selected > 1 then
+            selected = selected - 1
+        elseif key == keys.down and selected < #options then
+            selected = selected + 1
+        elseif key == keys.enter then
+            local choice = options[selected]
+            local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
+            local installed = fs.exists(filePath)
+
+            -- Ignore disabled options
+            if choice ~= "Download" and not installed then
+                -- Do nothing
+            elseif choice == "Download" then
+                downloadProgram(program)
+            elseif choice == "Run" then
+                runProgram(filePath)
+            elseif choice == "Reinstall" then
+                reinstallProgram(program)
+            end
+        elseif key == keys.backspace then
+            return
+        end
+    end
 end
 
 -- Main
@@ -132,5 +218,7 @@ if #programs == 0 then
     return
 end
 
-local selectedProgram = menu(programs)
-downloadAndRun(selectedProgram)
+while true do
+    local selectedProgram = menu(programs)
+    programSubMenu(selectedProgram)
+end
