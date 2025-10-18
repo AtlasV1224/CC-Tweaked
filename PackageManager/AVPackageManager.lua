@@ -150,9 +150,55 @@ local function reinstallProgram(program)
     return downloadProgram(program)
 end
 
+-- Add program to startup
+local function addToStartup(program)
+    local path = "startup.lua"
+
+    -- Create file if it doesn't exist
+    if not fs.exists(path) then
+        local file = fs.open(path, "w")
+        file.writeLine("-- Auto-generated startup file")
+        file.close()
+    end
+
+    -- Read file to prevent duplicates
+    local lines = {}
+    local file = fs.open(path, "r")
+    while true do
+        local line = file.readLine()
+        if not line then break end
+        table.insert(lines, line)
+    end
+    file.close()
+
+    -- Determine correct path to program
+    local programPath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
+    local runLine = string.format('shell.run("%s")', programPath)
+
+    -- Check if it's already there
+    for _, line in ipairs(lines) do
+        if line == runLine then
+            print("Program already in startup.lua")
+            sleep(2)
+            return
+        end
+    end
+
+    -- Append the new line
+    local file = fs.open(path, "a")
+    file.writeLine(runLine)
+    file.close()
+
+    term.clear()
+    term.setCursorPos(1, 1)
+    print("Added " .. program.name .. " to startup.lua")
+    sleep(2)
+end
+
+
 -- App options Submenu
 local function programSubMenu(program)
-    local options = {"Download", "Run", "Reinstall"}
+    local options = {"Download", "Run", "Reinstall", "Add to Startup"}
     local selected = 1
 
     while true do
@@ -164,8 +210,6 @@ local function programSubMenu(program)
         for i, opt in ipairs(options) do
             local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
             local installed = fs.exists(filePath)
-
-            -- Disable Run/Reinstall if not installed
             local disabled = (opt ~= "Download" and not installed)
 
             if i == selected then
@@ -195,21 +239,24 @@ local function programSubMenu(program)
             local filePath = fs.combine(PROGRAMS_DIR, program.name .. ".lua")
             local installed = fs.exists(filePath)
 
-            -- Ignore disabled options
             if choice ~= "Download" and not installed then
-                -- Do nothing
+                -- do nothing
             elseif choice == "Download" then
                 downloadProgram(program)
             elseif choice == "Run" then
                 runProgram(filePath)
             elseif choice == "Reinstall" then
                 reinstallProgram(program)
+            elseif choice == "Add to Startup" then
+                addToStartup(program)
             end
         elseif key == keys.backspace then
             return
         end
     end
 end
+
+
 
 -- Main
 local programs = fetchPrograms(DATA_URL)
