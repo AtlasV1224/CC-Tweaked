@@ -1,0 +1,1 @@
+-- This example contains simple buttons and text labels in a vertical list
