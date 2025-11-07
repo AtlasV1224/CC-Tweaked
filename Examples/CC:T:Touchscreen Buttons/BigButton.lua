@@ -23,7 +23,7 @@ while true do
     local e, side, x, y = os.pullEvent("monitor_touch")
     active = not active
     -- Toggles the redstone output
-    redstone.setOutput("back", active)
+    redstone.setOutput("front", active)
     -- Redraws the button in the new toggle state
     drawButton()
 end
