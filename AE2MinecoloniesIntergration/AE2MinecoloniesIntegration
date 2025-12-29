@@ -1,0 +1,27 @@
+local MEBridge = peripheral.wrap("right")
+local integrator = peripheral.wrap("left")
+
+
+--Checks if it havs accessible ME system and is in colony
+
+-- Get builder requests
+    -- if isItemCraftable(request) == true
+        -- craftItem(item, count)
+        -- exportItem(item, count)
+    -- else
+        -- report item isn't craftable
+
+local workOrder = integrator.getWorkOrders()
+local workOrderID = workOrder.id
+local workOrderResources = integrator.getWorkOrderResources(workOrderID)
+
+textutils.pagedPrint(serialise(workOrderResources))
+
+-- if integrator.isInColony() then
+--     print("Block is inside a colony!")
+-- else
+--     print("Not in a colony!")
+-- end
+
+-- local CPUs = MEBridge.getCraftingCPUs()
+-- print(textutils.serialise(CPUs))
